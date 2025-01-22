@@ -36,19 +36,23 @@ class _HomeScreenState extends State<HomeScreen> {
     if (code >= 200 && code < 300) {
       return Lottie.asset('assets/weather/Thunderstorm.json');
     } else if (code >= 300 && code < 600) {
-      return Lottie.asset(
-          isNight ? 'assets/weather/Raining_night.json' : 'assets/weather/Raining.json');
+      return Lottie.asset(isNight
+          ? 'assets/weather/Raining_night.json'
+          : 'assets/weather/Raining.json');
     } else if (code >= 600 && code < 700) {
       return Lottie.asset('assets/weather/Cloudy.json');
     } else if (code >= 700 && code < 800) {
       return Lottie.asset('assets/weather/Cloudy.json');
     } else if (code == 800) {
-      return Lottie.asset(isNight ? 'assets/weather/Night.json' : 'assets/weather/Sunny.json');
-    } else if (code > 800 && code <= 804) {
       return Lottie.asset(
-          isNight ? 'assets/weather/Cloudy_night.json' : 'assets/weather/Cloudy_sun.json');
+          isNight ? 'assets/weather/Night.json' : 'assets/weather/Sunny.json');
+    } else if (code > 800 && code <= 804) {
+      return Lottie.asset(isNight
+          ? 'assets/weather/Cloudy_night.json'
+          : 'assets/weather/Cloudy_sun.json');
     } else {
-      return Lottie.asset(isNight ? 'assets/weather/Night.json' : 'assets/weather/Sunny.json');
+      return Lottie.asset(
+          isNight ? 'assets/weather/Night.json' : 'assets/weather/Sunny.json');
     }
   }
 
