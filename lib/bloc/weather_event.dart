@@ -15,3 +15,12 @@ class FetchWeather extends WeatherEvent {
   @override
   List<Object> get props => [position];
 }
+
+class RefreshWeather extends WeatherEvent {
+  final Position position;
+
+  const RefreshWeather({required this.position});
+
+  @override
+  List<Object> get props => [position];
+}

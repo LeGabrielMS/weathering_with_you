@@ -4,16 +4,53 @@ import 'package:geolocator/geolocator.dart';
 
 import 'bloc/weather_bloc.dart';
 import 'screens/home_screen.dart';
-import 'utils/location_service.dart'; // Import the utility class
+import 'utils/location_service.dart';
 
 void main() {
   runApp(const MyApp());
 }
 
-class MyApp extends StatelessWidget {
+class MyApp extends StatefulWidget {
   const MyApp({super.key});
 
-  void _showErrorDialog(BuildContext context, String message) {
+  @override
+  State<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
+  late Future<Position> _positionFuture;
+  bool _locationPreviouslyOff = false; // Track if location was previously off
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _positionFuture = LocationService.determinePosition();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) async {
+    if (state == AppLifecycleState.resumed) {
+      // Check if location services were previously off
+      if (_locationPreviouslyOff) {
+        final isLocationEnabled = await Geolocator.isLocationServiceEnabled();
+        if (isLocationEnabled) {
+          setState(() {
+            _positionFuture = LocationService.determinePosition();
+            _locationPreviouslyOff = false; // Reset the flag
+          });
+        }
+      }
+    }
+  }
+
+  void _showErrorDialog(String message) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -23,8 +60,11 @@ class MyApp extends StatelessWidget {
           TextButton(
             onPressed: () {
               Navigator.of(context).pop();
+              setState(() {
+                _positionFuture = LocationService.determinePosition();
+              });
             },
-            child: const Text('OK'),
+            child: const Text('Retry'),
           ),
         ],
       ),
@@ -38,7 +78,7 @@ class MyApp extends StatelessWidget {
       child: MaterialApp(
         debugShowCheckedModeBanner: false,
         home: FutureBuilder<Position>(
-          future: LocationService.determinePosition(),
+          future: _positionFuture,
           builder: (context, snap) {
             if (snap.connectionState == ConnectionState.waiting) {
               return const Scaffold(
@@ -46,8 +86,12 @@ class MyApp extends StatelessWidget {
               );
             } else if (snap.hasError) {
               WidgetsBinding.instance.addPostFrameCallback((_) {
-                _showErrorDialog(context, snap.error.toString());
+                _showErrorDialog(snap.error.toString());
               });
+
+              // Mark location as previously off
+              _locationPreviouslyOff = true;
+
               return const Scaffold(
                 body: Center(
                   child: Text(

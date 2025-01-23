@@ -15,6 +15,7 @@ class WeatherBloc extends Bloc<WeatherEvent, WeatherState> {
       : _weatherFactory = WeatherFactory(apiKey, language: Language.INDONESIAN),
         super(WeatherBlocInitial()) {
     on<FetchWeather>(_onFetchWeather);
+    on<RefreshWeather>(_onRefreshWeather); // New event
   }
 
   Future<void> _onFetchWeather(
@@ -23,6 +24,22 @@ class WeatherBloc extends Bloc<WeatherEvent, WeatherState> {
 
     try {
       // Fetch weather by location
+      Weather weather = await _weatherFactory.currentWeatherByLocation(
+        event.position.latitude,
+        event.position.longitude,
+      );
+
+      emit(WeatherBlocSuccess(weather));
+    } catch (error) {
+      // Emit failure state with error message
+      emit(WeatherBlocFailure(error.toString()));
+    }
+  }
+
+  Future<void> _onRefreshWeather(
+      RefreshWeather event, Emitter<WeatherState> emit) async {
+    try {
+      // Fetch updated weather data
       Weather weather = await _weatherFactory.currentWeatherByLocation(
         event.position.latitude,
         event.position.longitude,

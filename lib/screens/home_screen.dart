@@ -182,6 +182,25 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   ],
                 ),
+                Padding(
+                  padding: EdgeInsets.symmetric(vertical: 5.0),
+                  child: Divider(color: Colors.grey),
+                ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    buildRow(
+                      'Pressure',
+                      'assets/weather/Pressure.json',
+                      '${state.weather.pressure?.round()} hPa',
+                    ),
+                    buildRow(
+                      'Humidity',
+                      'assets/weather/Humidity.json',
+                      '${state.weather.humidity?.round()}%',
+                    ),
+                  ],
+                ),
               ],
             );
           } else if (state is WeatherBlocFailure) {

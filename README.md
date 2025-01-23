@@ -1,16 +1,15 @@
-# weather_app
+# Weathering with You
 
 Tugas Besar untuk mata kuliah Pemrograman Mobile 2.
 
-## Getting Started
+## Anggota Kelompok 4
 
-This project is a starting point for a Flutter application.
+1.	ADITYA RAMDHANI - 22552011115
+2.	DHAFA AZMI ATHALLAH - 22552011110
+3.	GABRIEL MARCELLINO SINURAT - 22552011043
+4.	MUHAMMAD NIZAR NADHIF FIRDAUSYAH - 22552011098
 
-A few resources to get you started if this is your first Flutter project:
-
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+**DEPARTEMEN TEKNIK INFORMATIKA
+FAKULTAS INDUSTRI KREATIF
+UNIVERSITAS TEKNOLOGI BANDUNG
+2025**
