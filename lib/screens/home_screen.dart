@@ -7,6 +7,7 @@ import '../bloc/weather_bloc.dart';
 import '../helpers/weather_helpers.dart';
 import '../widgets/weather_row.dart';
 import '../widgets/weather_section.dart';
+import '../widgets/forecast_section.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -38,6 +39,7 @@ class _HomeScreenState extends State<HomeScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // Header Section
                   Text(
                     "${state.weather.areaName}",
                     style: const TextStyle(
@@ -54,6 +56,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       fontWeight: FontWeight.bold,
                     ),
                   ),
+                  const SizedBox(height: 20),
                   Center(
                     child: getWeatherIcon(state.weather.weatherConditionCode!),
                   ),
@@ -61,7 +64,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   Center(
                     child: Text(
                       '${state.weather.temperature?.celsius?.round()}°C',
-                      style: TextStyle(
+                      style: const TextStyle(
                         color: Colors.white,
                         fontSize: 55,
                         fontWeight: FontWeight.bold,
@@ -71,23 +74,36 @@ class _HomeScreenState extends State<HomeScreen> {
                   Center(
                     child: Text(
                       "${state.weather.weatherMain}",
-                      style: TextStyle(
+                      style: const TextStyle(
                           color: Colors.white,
                           fontSize: 25,
                           fontWeight: FontWeight.w500),
                     ),
                   ),
-                  SizedBox(height: 5),
+                  const SizedBox(height: 5),
                   Center(
                     child: Text(
                       DateFormat("EEEE, d MMMM y").format(state.weather.date!),
-                      style: TextStyle(
+                      style: const TextStyle(
                           color: Colors.white,
                           fontSize: 16,
                           fontWeight: FontWeight.w300),
                     ),
                   ),
+                  const SizedBox(height: 30),
+
+                  // Weather Details Section (Two Columns)
+                  const Text(
+                    'Weather Details',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+
                   const SizedBox(height: 20),
+
                   WeatherSection(
                     rows: [
                       WeatherRow(
@@ -103,20 +119,16 @@ class _HomeScreenState extends State<HomeScreen> {
                         value:
                             DateFormat().add_jm().format(state.weather.sunset!),
                       ),
-                    ],
-                  ),
-                  WeatherSection(
-                    rows: [
                       WeatherRow(
-                          title: 'Max Temp.',
-                          assetPath: 'assets/weather/Max_temp.json',
-                          value:
-                              '${state.weather.tempMax?.celsius?.round()}°C'),
+                        title: 'Max Temp.',
+                        assetPath: 'assets/weather/Max_temp.json',
+                        value: '${state.weather.tempMax?.celsius?.round()}°C',
+                      ),
                       WeatherRow(
-                          title: 'Min Temp.',
-                          assetPath: 'assets/weather/Min_temp.json',
-                          value:
-                              '${state.weather.tempMin?.celsius?.round()}°C'),
+                        title: 'Min Temp.',
+                        assetPath: 'assets/weather/Min_temp.json',
+                        value: '${state.weather.tempMin?.celsius?.round()}°C',
+                      ),
                       WeatherRow(
                         title: 'Pressure',
                         assetPath: 'assets/weather/Pressure.json',
@@ -132,8 +144,27 @@ class _HomeScreenState extends State<HomeScreen> {
                         assetPath: 'assets/weather/Wind.json',
                         value: '${state.weather.windSpeed} km/h',
                       ),
+                      WeatherRow(
+                        title: 'Air Quality',
+                        assetPath: 'assets/weather/Air_pollution.json',
+                        value: '${state.airPollution} AQI',
+                      ),
                     ],
                   ),
+
+                  const SizedBox(height: 30),
+
+                  // 5-Day Forecast Section
+                  const Text(
+                    '5-Day Forecast',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  ForecastSection(forecast: state.forecast),
                 ],
               ),
             );

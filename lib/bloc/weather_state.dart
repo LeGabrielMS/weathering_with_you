@@ -22,9 +22,15 @@ final class WeatherBlocFailure extends WeatherState {
 
 final class WeatherBlocSuccess extends WeatherState {
   final Weather weather;
+  final List<Map<String, dynamic>> forecast; // 5-day forecast
+  final int airPollution; // Air Quality Index
 
-  const WeatherBlocSuccess(this.weather);
+  const WeatherBlocSuccess({
+    required this.weather,
+    required this.forecast,
+    required this.airPollution,
+  });
 
   @override
-  List<Object> get props => [weather];
+  List<Object> get props => [weather, forecast, airPollution];
 }

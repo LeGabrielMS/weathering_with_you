@@ -95,7 +95,8 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
               return const Scaffold(
                 body: Center(
                   child: Text(
-                    'Please enable location services.',
+                    'Please enable location services\nthrough phone settings or control panel.'
+                    ,
                     style: TextStyle(color: Colors.red),
                   ),
                 ),
