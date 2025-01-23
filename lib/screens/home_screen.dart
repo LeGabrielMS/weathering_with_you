@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
-import 'package:lottie/lottie.dart';
 
 import '../bloc/weather_bloc.dart';
+import '../helpers/weather_helpers.dart';
+import '../widgets/weather_row.dart';
+import '../widgets/weather_section.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -14,74 +16,6 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  // Helper to determine greeting based on time
-  String getGreeting() {
-    final hour = DateTime.now().hour;
-    if (hour >= 5 && hour < 12) {
-      return "Selamat Pagi!"; // Morning
-    } else if (hour >= 12 && hour < 15) {
-      return "Selamat Siang!"; // Noon
-    } else if (hour >= 15 && hour < 18) {
-      return "Selamat Sore!"; // Afternoon
-    } else {
-      return "Selamat Malam!"; // Night
-    }
-  }
-
-  // Helper to get weather icon dynamically based on weather code and time
-  Widget getWeatherIcon(int code) {
-    final hour = DateTime.now().hour;
-    final isNight = hour < 6 || hour >= 18;
-
-    if (code >= 200 && code < 300) {
-      return Lottie.asset('assets/weather/Thunderstorm.json');
-    } else if (code >= 300 && code < 600) {
-      return Lottie.asset(isNight
-          ? 'assets/weather/Raining_night.json'
-          : 'assets/weather/Raining.json');
-    } else if (code >= 600 && code < 700) {
-      return Lottie.asset('assets/weather/Cloudy.json');
-    } else if (code >= 700 && code < 800) {
-      return Lottie.asset('assets/weather/Cloudy.json');
-    } else if (code == 800) {
-      return Lottie.asset(
-          isNight ? 'assets/weather/Night.json' : 'assets/weather/Sunny.json');
-    } else if (code > 800 && code <= 804) {
-      return Lottie.asset(isNight
-          ? 'assets/weather/Cloudy_night.json'
-          : 'assets/weather/Cloudy_sun.json');
-    } else {
-      return Lottie.asset(
-          isNight ? 'assets/weather/Night.json' : 'assets/weather/Sunny.json');
-    }
-  }
-
-  // Helper to create rows for sunrise/sunset, temperature, etc.
-  Widget buildRow(String title, String assetPath, String value) {
-    return Row(
-      children: [
-        Lottie.asset(assetPath, width: 50),
-        SizedBox(width: 5),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              title,
-              style:
-                  TextStyle(color: Colors.white, fontWeight: FontWeight.w300),
-            ),
-            SizedBox(height: 3),
-            Text(
-              value,
-              style:
-                  TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -91,127 +25,127 @@ class _HomeScreenState extends State<HomeScreen> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         systemOverlayStyle:
-            SystemUiOverlayStyle(statusBarBrightness: Brightness.dark),
+            const SystemUiOverlayStyle(statusBarBrightness: Brightness.dark),
       ),
       body: Padding(
-        padding: EdgeInsets.fromLTRB(40, 1.2 * kToolbarHeight, 40, 20),
+        padding: const EdgeInsets.fromLTRB(40, 1.2 * kToolbarHeight, 40, 20),
         child:
             BlocBuilder<WeatherBloc, WeatherState>(builder: (context, state) {
           if (state is WeatherBlocLoading) {
-            return Center(child: CircularProgressIndicator());
+            return const Center(child: CircularProgressIndicator());
           } else if (state is WeatherBlocSuccess) {
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  "${state.weather.areaName}",
-                  style: TextStyle(
-                      color: Colors.white, fontWeight: FontWeight.w300),
-                ),
-                SizedBox(height: 8),
-                Text(
-                  getGreeting(),
-                  style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 25,
-                      fontWeight: FontWeight.bold),
-                ),
-                Center(
-                  child: getWeatherIcon(state.weather.weatherConditionCode!),
-                ),
-                Center(
-                  child: Text(
-                    '${state.weather.temperature?.celsius?.round()}°C',
-                    style: TextStyle(
+            return SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    "${state.weather.areaName}",
+                    style: const TextStyle(
                         color: Colors.white,
-                        fontSize: 55,
-                        fontWeight: FontWeight.w600),
-                  ),
-                ),
-                Center(
-                  child: Text(
-                    "${state.weather.weatherMain}",
-                    style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 25,
-                        fontWeight: FontWeight.w500),
-                  ),
-                ),
-                SizedBox(height: 5),
-                Center(
-                  child: Text(
-                    DateFormat("EEEE, d MMMM y").format(state.weather.date!),
-                    style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 16,
+                        fontSize: 18,
                         fontWeight: FontWeight.w300),
                   ),
-                ),
-                SizedBox(height: 30),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    buildRow(
-                      'Sunrise',
-                      'assets/weather/Sunny.json',
-                      DateFormat().add_jm().format(state.weather.sunrise!),
+                  const SizedBox(height: 8),
+                  Text(
+                    getGreeting(),
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 26,
+                      fontWeight: FontWeight.bold,
                     ),
-                    buildRow(
-                      'Sunset',
-                      'assets/weather/Night.json',
-                      DateFormat().add_jm().format(state.weather.sunset!),
+                  ),
+                  Center(
+                    child: getWeatherIcon(state.weather.weatherConditionCode!),
+                  ),
+                  const SizedBox(height: 20),
+                  Center(
+                    child: Text(
+                      '${state.weather.temperature?.celsius?.round()}°C',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 55,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
-                  ],
-                ),
-                Padding(
-                  padding: EdgeInsets.symmetric(vertical: 5.0),
-                  child: Divider(color: Colors.grey),
-                ),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    buildRow(
-                      'Temp. Max',
-                      'assets/weather/Max_temp.json',
-                      '${state.weather.tempMax?.celsius?.round()}°C',
+                  ),
+                  Center(
+                    child: Text(
+                      "${state.weather.weatherMain}",
+                      style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 25,
+                          fontWeight: FontWeight.w500),
                     ),
-                    buildRow(
-                      'Temp. Min',
-                      'assets/weather/Min_temp.json',
-                      '${state.weather.tempMin?.celsius?.round()}°C',
+                  ),
+                  SizedBox(height: 5),
+                  Center(
+                    child: Text(
+                      DateFormat("EEEE, d MMMM y").format(state.weather.date!),
+                      style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w300),
                     ),
-                  ],
-                ),
-                Padding(
-                  padding: EdgeInsets.symmetric(vertical: 5.0),
-                  child: Divider(color: Colors.grey),
-                ),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    buildRow(
-                      'Pressure',
-                      'assets/weather/Pressure.json',
-                      '${state.weather.pressure?.round()} hPa',
-                    ),
-                    buildRow(
-                      'Humidity',
-                      'assets/weather/Humidity.json',
-                      '${state.weather.humidity?.round()}%',
-                    ),
-                  ],
-                ),
-              ],
+                  ),
+                  const SizedBox(height: 20),
+                  WeatherSection(
+                    rows: [
+                      WeatherRow(
+                        title: 'Sunrise',
+                        assetPath: 'assets/weather/Sunny.json',
+                        value: DateFormat()
+                            .add_jm()
+                            .format(state.weather.sunrise!),
+                      ),
+                      WeatherRow(
+                        title: 'Sunset',
+                        assetPath: 'assets/weather/Night.json',
+                        value:
+                            DateFormat().add_jm().format(state.weather.sunset!),
+                      ),
+                    ],
+                  ),
+                  WeatherSection(
+                    rows: [
+                      WeatherRow(
+                          title: 'Max Temp.',
+                          assetPath: 'assets/weather/Max_temp.json',
+                          value:
+                              '${state.weather.tempMax?.celsius?.round()}°C'),
+                      WeatherRow(
+                          title: 'Min Temp.',
+                          assetPath: 'assets/weather/Min_temp.json',
+                          value:
+                              '${state.weather.tempMin?.celsius?.round()}°C'),
+                      WeatherRow(
+                        title: 'Pressure',
+                        assetPath: 'assets/weather/Pressure.json',
+                        value: '${state.weather.pressure?.round()} hPa',
+                      ),
+                      WeatherRow(
+                        title: 'Humidity',
+                        assetPath: 'assets/weather/Humidity.json',
+                        value: '${state.weather.humidity?.round()}%',
+                      ),
+                      WeatherRow(
+                        title: 'Wind',
+                        assetPath: 'assets/weather/Wind.json',
+                        value: '${state.weather.windSpeed} km/h',
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             );
           } else if (state is WeatherBlocFailure) {
             return Center(
               child: Text(
                 'Error: ${state.error}',
-                style: TextStyle(color: Colors.white, fontSize: 18),
+                style: const TextStyle(color: Colors.white, fontSize: 18),
               ),
             );
           } else {
-            return Center(child: CircularProgressIndicator());
+            return const Center(child: CircularProgressIndicator());
           }
         }),
       ),
