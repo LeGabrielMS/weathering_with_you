@@ -1,24 +1,27 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:equatable/equatable.dart';
-import 'package:geolocator/geolocator.dart';
 import 'package:weather/weather.dart';
 import 'package:http/http.dart' as http;
 import 'dart:math' as math;
 import 'dart:convert';
 
 import '../data/my_data.dart';
+import '../utils/geocoding_service.dart';
 
 part 'weather_event.dart';
 part 'weather_state.dart';
 
 class WeatherBloc extends Bloc<WeatherEvent, WeatherState> {
   final WeatherFactory _weatherFactory;
+  final GeocodingService _geocodingService;
 
   WeatherBloc()
       : _weatherFactory = WeatherFactory(apiKey, language: Language.INDONESIAN),
+        _geocodingService = GeocodingService(apiKey),
         super(WeatherBlocInitial()) {
     on<FetchWeather>(_onFetchWeather);
-    on<RefreshWeather>(_onRefreshWeather); // New event
+    on<RefreshWeather>(_onRefreshWeather);
+    on<SearchLocation>(_onSearchLocation);
   }
 
   Future<void> _onFetchWeather(
@@ -26,39 +29,19 @@ class WeatherBloc extends Bloc<WeatherEvent, WeatherState> {
     emit(WeatherBlocLoading());
 
     try {
-      // Fetch current weather
-      Weather currentWeather = await _weatherFactory.currentWeatherByLocation(
-        event.position.latitude,
-        event.position.longitude,
+      // Fetch all weather data, including adjusted sunrise/sunset
+      final data = await _fetchAllWeatherData(
+        latitude: event.latitude,
+        longitude: event.longitude,
       );
 
-      List<Map<String, dynamic>> forecast = [];
-      int airPollution = 0;
-
-      // Fetch 5-day forecast
-      try {
-        forecast = await _fetchForecast(
-          event.position.latitude,
-          event.position.longitude,
-        );
-      } catch (e) {
-        forecast = []; // Default to empty forecast on failure
-      }
-
-      // Fetch air pollution data
-      try {
-        airPollution = await _fetchAirPollution(
-          event.position.latitude,
-          event.position.longitude,
-        );
-      } catch (e) {
-        airPollution = 0; // Default to 0 AQI on failure
-      }
-
       emit(WeatherBlocSuccess(
-        weather: currentWeather,
-        forecast: forecast,
-        airPollution: airPollution,
+        weather: data['weather'],
+        forecast: data['forecast'],
+        airPollution: data['airPollution'],
+        sunriseLocal: data['sunriseLocal'],
+        sunsetLocal: data['sunsetLocal'],
+        timezoneOffset: data['timezoneOffset'],
       ));
     } catch (error) {
       emit(WeatherBlocFailure(error.toString()));
@@ -68,32 +51,92 @@ class WeatherBloc extends Bloc<WeatherEvent, WeatherState> {
   Future<void> _onRefreshWeather(
       RefreshWeather event, Emitter<WeatherState> emit) async {
     try {
-      // Fetch updated weather data
-      Weather currentWeather = await _weatherFactory.currentWeatherByLocation(
-        event.position.latitude,
-        event.position.longitude,
-      );
-
-      // Fetch 5-day forecast
-      final forecast = await _fetchForecast(
-        event.position.latitude,
-        event.position.longitude,
-      );
-
-      // Fetch air pollution data
-      final airPollution = await _fetchAirPollution(
-        event.position.latitude,
-        event.position.longitude,
+      // Fetch all weather data, including adjusted sunrise/sunset
+      final data = await _fetchAllWeatherData(
+        latitude: event.latitude,
+        longitude: event.longitude,
       );
 
       emit(WeatherBlocSuccess(
-        weather: currentWeather,
-        forecast: forecast,
-        airPollution: airPollution,
+        weather: data['weather'],
+        forecast: data['forecast'],
+        airPollution: data['airPollution'],
+        sunriseLocal: data['sunriseLocal'],
+        sunsetLocal: data['sunsetLocal'],
+        timezoneOffset: data['timezoneOffset'],
       ));
     } catch (error) {
-      // Emit failure state with error message
       emit(WeatherBlocFailure(error.toString()));
+    }
+  }
+
+  Future<void> _onSearchLocation(
+      SearchLocation event, Emitter<WeatherState> emit) async {
+    emit(WeatherBlocLoading());
+
+    try {
+      final location =
+          await _geocodingService.getCoordinates(event.locationName);
+
+      final data = await _fetchAllWeatherData(
+        latitude: location['lat'],
+        longitude: location['lon'],
+      );
+
+      emit(WeatherBlocSuccess(
+        weather: data['weather'],
+        forecast: data['forecast'],
+        airPollution: data['airPollution'],
+        sunriseLocal: data['sunriseLocal'],
+        sunsetLocal: data['sunsetLocal'],
+        timezoneOffset: data['timezoneOffset'],
+      ));
+    } catch (error) {
+      emit(WeatherBlocFailure(error.toString()));
+    }
+  }
+
+  Future<Map<String, dynamic>> _fetchAllWeatherData({
+    required double latitude,
+    required double longitude,
+  }) async {
+    // Fetch current weather
+    final Weather currentWeather =
+        await _weatherFactory.currentWeatherByLocation(latitude, longitude);
+
+    // Fetch additional details from the raw API
+    final url = Uri.parse(
+        'https://api.openweathermap.org/data/2.5/weather?lat=$latitude&lon=$longitude&appid=$apiKey&units=metric');
+    final response = await http.get(url);
+
+    if (response.statusCode == 200) {
+      final data = json.decode(response.body);
+
+      // Extract timezone offset and adjust sunrise/sunset times
+      final timezoneOffset = data['timezone'] as int; // Offset in seconds
+      final sunriseUtc = DateTime.fromMillisecondsSinceEpoch(
+        data['sys']['sunrise'] * 1000,
+        isUtc: true,
+      );
+      final sunsetUtc = DateTime.fromMillisecondsSinceEpoch(
+        data['sys']['sunset'] * 1000,
+        isUtc: true,
+      );
+
+      final sunriseLocal = sunriseUtc.add(Duration(seconds: timezoneOffset));
+      final sunsetLocal = sunsetUtc.add(Duration(seconds: timezoneOffset));
+
+      // Return the complete weather data
+      return {
+        'weather': currentWeather,
+        'forecast': await _fetchForecast(latitude, longitude),
+        'airPollution': await _fetchAirPollution(latitude, longitude),
+        'sunriseLocal': sunriseLocal,
+        'sunsetLocal': sunsetLocal,
+        'timezoneOffset': Duration(seconds: timezoneOffset),
+      };
+    } else {
+      throw Exception('Failed to fetch weather data');
     }
   }
 
@@ -106,33 +149,29 @@ class WeatherBloc extends Bloc<WeatherEvent, WeatherState> {
     if (response.statusCode == 200) {
       final data = json.decode(response.body);
 
-      // Group by day
       final groupedForecast = <String, Map<String, dynamic>>{};
       for (var item in data['list']) {
-        final date = item['dt_txt'].split(' ')[0]; // Extract the date
-        final tempMin =
-            (item['main']['temp_min'] as num?) ?? 0.0; // Default to 0.0
-        final tempMax =
-            (item['main']['temp_max'] as num?) ?? 0.0; // Default to 0.0
+        final date = item['dt_txt'].split(' ')[0];
+        final tempMin = (item['main']['temp_min'] as num?)?.toDouble() ?? 0.0;
+        final tempMax = (item['main']['temp_max'] as num?)?.toDouble() ?? 0.0;
 
-        if (!groupedForecast.containsKey(date)) {
-          groupedForecast[date] = {
+        groupedForecast.update(
+          date,
+          (existing) => {
+            'date': date,
+            'temp_min': math.min(existing['temp_min'] as double, tempMin),
+            'temp_max': math.max(existing['temp_max'] as double, tempMax),
+            'icon': existing['icon'],
+            'description': existing['description'],
+          },
+          ifAbsent: () => {
             'date': date,
             'temp_min': tempMin,
             'temp_max': tempMax,
             'icon': item['weather'][0]['icon'],
             'description': item['weather'][0]['description'],
-          };
-        } else {
-          groupedForecast[date]!['temp_min'] = math.min(
-            groupedForecast[date]!['temp_min'] as double,
-            tempMin.toDouble(),
-          );
-          groupedForecast[date]!['temp_max'] = math.max(
-            groupedForecast[date]!['temp_max'] as double,
-            tempMax.toDouble(),
-          );
-        }
+          },
+        );
       }
 
       return groupedForecast.values.toList();
@@ -148,7 +187,7 @@ class WeatherBloc extends Bloc<WeatherEvent, WeatherState> {
 
     if (response.statusCode == 200) {
       final data = json.decode(response.body);
-      return data['list'][0]['main']['aqi']; // Air Quality Index (1 to 5)
+      return data['list'][0]['main']['aqi'];
     } else {
       throw Exception('Failed to fetch air pollution data');
     }

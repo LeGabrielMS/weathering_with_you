@@ -8,6 +8,7 @@ import '../helpers/weather_helpers.dart';
 import '../widgets/weather_row.dart';
 import '../widgets/weather_section.dart';
 import '../widgets/forecast_section.dart';
+import 'location_selection_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -17,6 +18,24 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  /// Helper function to determine greeting based on location's time zone
+  String getLocalizedGreeting(Duration timezoneOffset) {
+    final currentUtcTime = DateTime.now().toUtc();
+    final localTime = currentUtcTime.add(timezoneOffset);
+
+    final hour = localTime.hour;
+
+    if (hour >= 5 && hour < 12) {
+      return "Selamat Pagi!"; // Morning
+    } else if (hour >= 12 && hour < 15) {
+      return "Selamat Siang!"; // Noon
+    } else if (hour >= 15 && hour < 18) {
+      return "Selamat Sore!"; // Afternoon
+    } else {
+      return "Selamat Malam!"; // Night
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -25,31 +44,67 @@ class _HomeScreenState extends State<HomeScreen> {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        systemOverlayStyle:
-            const SystemUiOverlayStyle(statusBarBrightness: Brightness.dark),
+        systemOverlayStyle: const SystemUiOverlayStyle(
+          statusBarBrightness: Brightness.dark,
+        ),
       ),
       body: Padding(
         padding: const EdgeInsets.fromLTRB(40, 1.2 * kToolbarHeight, 40, 20),
         child:
             BlocBuilder<WeatherBloc, WeatherState>(builder: (context, state) {
-          if (state is WeatherBlocLoading) {
-            return const Center(child: CircularProgressIndicator());
-          } else if (state is WeatherBlocSuccess) {
-            return SingleChildScrollView(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Header Section
-                  Text(
-                    "${state.weather.areaName}",
-                    style: const TextStyle(
-                        color: Colors.white,
+          return SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Header Section
+                GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: state is WeatherBlocSuccess
+                      ? () async {
+                          final weatherBloc = context.read<WeatherBloc>();
+
+                          final selectedLocation = await Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) =>
+                                  const LocationSelectionScreen(),
+                            ),
+                          );
+
+                          if (selectedLocation != null) {
+                            weatherBloc.add(FetchWeather(
+                              latitude: selectedLocation['lat'],
+                              longitude: selectedLocation['lon'],
+                            ));
+                          }
+                        }
+                      : null,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 10),
+                    child: Text(
+                      state is WeatherBlocLoading
+                          ? "Loading..."
+                          : state is WeatherBlocSuccess
+                              ? "${state.weather.areaName}"
+                              : "Unable to fetch location",
+                      style: TextStyle(
+                        color: state is WeatherBlocSuccess
+                            ? Colors.white
+                            : Colors.grey,
                         fontSize: 18,
-                        fontWeight: FontWeight.w300),
+                        fontWeight: FontWeight.w300,
+                        decoration: state is WeatherBlocSuccess
+                            ? TextDecoration.underline
+                            : TextDecoration.none,
+                      ),
+                    ),
                   ),
-                  const SizedBox(height: 8),
+                ),
+                const SizedBox(height: 8),
+                if (state is WeatherBlocSuccess) ...[
+                  // Localized Greeting
                   Text(
-                    getGreeting(),
+                    getLocalizedGreeting(state.timezoneOffset),
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 26,
@@ -75,24 +130,30 @@ class _HomeScreenState extends State<HomeScreen> {
                     child: Text(
                       "${state.weather.weatherMain}",
                       style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 25,
-                          fontWeight: FontWeight.w500),
+                        color: Colors.white,
+                        fontSize: 25,
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
                   ),
                   const SizedBox(height: 5),
+                  // Localized Date with 24-Hour Format
                   Center(
                     child: Text(
-                      DateFormat("EEEE, d MMMM y").format(state.weather.date!),
+                      DateFormat("EEEE, d MMMM y | HH:mm").format(
+                        DateTime.now().toUtc().add(state.timezoneOffset),
+                      ),
                       style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w300),
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w300,
+                      ),
                     ),
                   ),
+
                   const SizedBox(height: 30),
 
-                  // Weather Details Section (Two Columns)
+                  // Weather Details Section
                   const Text(
                     'Weather Details',
                     style: TextStyle(
@@ -101,23 +162,18 @@ class _HomeScreenState extends State<HomeScreen> {
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-
                   const SizedBox(height: 20),
-
                   WeatherSection(
                     rows: [
                       WeatherRow(
                         title: 'Sunrise',
                         assetPath: 'assets/weather/Sunny.json',
-                        value: DateFormat()
-                            .add_jm()
-                            .format(state.weather.sunrise!),
+                        value: DateFormat('HH:mm').format(state.sunriseLocal),
                       ),
                       WeatherRow(
                         title: 'Sunset',
                         assetPath: 'assets/weather/Night.json',
-                        value:
-                            DateFormat().add_jm().format(state.weather.sunset!),
+                        value: DateFormat('HH:mm').format(state.sunsetLocal),
                       ),
                       WeatherRow(
                         title: 'Max Temp.',
@@ -165,19 +221,19 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                   const SizedBox(height: 10),
                   ForecastSection(forecast: state.forecast),
+                ] else if (state is WeatherBlocLoading) ...[
+                  const Center(child: CircularProgressIndicator()),
+                ] else if (state is WeatherBlocFailure) ...[
+                  Center(
+                    child: Text(
+                      'Error: ${state.error}',
+                      style: const TextStyle(color: Colors.red, fontSize: 18),
+                    ),
+                  ),
                 ],
-              ),
-            );
-          } else if (state is WeatherBlocFailure) {
-            return Center(
-              child: Text(
-                'Error: ${state.error}',
-                style: const TextStyle(color: Colors.white, fontSize: 18),
-              ),
-            );
-          } else {
-            return const Center(child: CircularProgressIndicator());
-          }
+              ],
+            ),
+          );
         }),
       ),
     );

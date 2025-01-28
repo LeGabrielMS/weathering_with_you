@@ -22,15 +22,28 @@ final class WeatherBlocFailure extends WeatherState {
 
 final class WeatherBlocSuccess extends WeatherState {
   final Weather weather;
-  final List<Map<String, dynamic>> forecast; // 5-day forecast
-  final int airPollution; // Air Quality Index
+  final List<Map<String, dynamic>> forecast;
+  final int airPollution;
+  final Duration timezoneOffset; // New field
+  final DateTime sunriseLocal; // Pre-computed sunrise
+  final DateTime sunsetLocal; // Pre-computed sunset
 
   const WeatherBlocSuccess({
     required this.weather,
     required this.forecast,
     required this.airPollution,
+    required this.timezoneOffset, // Include timezoneOffset
+    required this.sunriseLocal, // Include sunriseLocal
+    required this.sunsetLocal, // Include sunsetLocal
   });
 
   @override
-  List<Object> get props => [weather, forecast, airPollution];
+  List<Object> get props => [
+        weather,
+        forecast,
+        airPollution,
+        timezoneOffset,
+        sunriseLocal,
+        sunsetLocal,
+      ];
 }

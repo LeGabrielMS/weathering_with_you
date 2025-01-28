@@ -8,19 +8,36 @@ sealed class WeatherEvent extends Equatable {
 }
 
 class FetchWeather extends WeatherEvent {
-  final Position position;
+  final double latitude;
+  final double longitude;
 
-  const FetchWeather({required this.position});
+  const FetchWeather({
+    required this.latitude,
+    required this.longitude,
+  });
 
   @override
-  List<Object> get props => [position];
+  List<Object> get props => [latitude, longitude];
 }
 
 class RefreshWeather extends WeatherEvent {
-  final Position position;
+  final double latitude;
+  final double longitude;
 
-  const RefreshWeather({required this.position});
+  const RefreshWeather({
+    required this.latitude,
+    required this.longitude,
+  });
 
   @override
-  List<Object> get props => [position];
+  List<Object> get props => [latitude, longitude];
+}
+
+class SearchLocation extends WeatherEvent {
+  final String locationName;
+
+  const SearchLocation(this.locationName);
+
+  @override
+  List<Object> get props => [locationName];
 }

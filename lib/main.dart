@@ -51,11 +51,15 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   }
 
   void _showErrorDialog(String message) {
+    final errorMessage = message.contains('PERMISSION_DENIED')
+        ? 'Location permissions are denied. Please enable them in app settings.'
+        : 'An unexpected error occurred.';
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Location Error'),
-        content: Text(message),
+        content: Text(errorMessage),
         actions: [
           TextButton(
             onPressed: () {
@@ -75,48 +79,55 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   Widget build(BuildContext context) {
     return BlocProvider(
       create: (context) => WeatherBloc(),
-      child: MaterialApp(
-        debugShowCheckedModeBanner: false,
-        home: FutureBuilder<Position>(
-          future: _positionFuture,
-          builder: (context, snap) {
-            if (snap.connectionState == ConnectionState.waiting) {
-              return const Scaffold(
-                body: Center(child: CircularProgressIndicator()),
-              );
-            } else if (snap.hasError) {
-              WidgetsBinding.instance.addPostFrameCallback((_) {
-                _showErrorDialog(snap.error.toString());
-              });
+      child: Builder(
+        builder: (context) {
+          return MaterialApp(
+            debugShowCheckedModeBanner: false,
+            home: FutureBuilder<Position>(
+              future: _positionFuture,
+              builder: (context, snap) {
+                if (snap.connectionState == ConnectionState.waiting) {
+                  return const Scaffold(
+                    body: Center(child: CircularProgressIndicator()),
+                  );
+                } else if (snap.hasError) {
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    _showErrorDialog(snap.error.toString());
+                  });
 
-              // Mark location as previously off
-              _locationPreviouslyOff = true;
+                  _locationPreviouslyOff = true;
 
-              return const Scaffold(
-                body: Center(
-                  child: Text(
-                    'Please enable location services\nthrough phone settings or control panel.'
-                    ,
-                    style: TextStyle(color: Colors.red),
-                  ),
-                ),
-              );
-            } else if (snap.hasData) {
-              final position = snap.data!;
-              context.read<WeatherBloc>().add(FetchWeather(position: position));
-              return const HomeScreen();
-            } else {
-              return const Scaffold(
-                body: Center(
-                  child: Text(
-                    'Unexpected error occurred.',
-                    style: TextStyle(color: Colors.red),
-                  ),
-                ),
-              );
-            }
-          },
-        ),
+                  return const Scaffold(
+                    body: Center(
+                      child: Text(
+                        'Please enable location services\nthrough phone settings or control panel.',
+                        style: TextStyle(color: Colors.red),
+                      ),
+                    ),
+                  );
+                } else if (snap.hasData) {
+                  final position = snap.data!;
+                  context.read<WeatherBloc>().add(
+                        FetchWeather(
+                          latitude: position.latitude,
+                          longitude: position.longitude,
+                        ),
+                      );
+                  return const HomeScreen();
+                } else {
+                  return const Scaffold(
+                    body: Center(
+                      child: Text(
+                        'Unexpected error occurred.',
+                        style: TextStyle(color: Colors.red),
+                      ),
+                    ),
+                  );
+                }
+              },
+            ),
+          );
+        },
       ),
     );
   }
