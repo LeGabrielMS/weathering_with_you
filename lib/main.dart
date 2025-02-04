@@ -4,7 +4,7 @@ import 'package:geolocator/geolocator.dart';
 
 import 'bloc/weather_bloc.dart';
 import 'screens/home_screen.dart';
-import 'utils/location_service.dart';
+import 'services/location_service.dart';
 
 void main() {
   runApp(const MyApp());

@@ -1,5 +1,8 @@
 import 'package:geolocator/geolocator.dart';
 
+import '../data/api_key.dart';
+import 'geocoding_service.dart';
+
 class LocationService {
   static Future<Position> determinePosition() async {
     LocationPermission permission;
@@ -28,5 +31,17 @@ class LocationService {
 
     // Step 3: Permissions are granted, and location services are enabled.
     return await Geolocator.getCurrentPosition();
+  }
+
+  static Future<Map<String, dynamic>> fetchCurrentLocation() async {
+    final position = await determinePosition();
+    return await GeocodingService(apiKey).getCoordinatesFromLatLon(
+      position.latitude,
+      position.longitude,
+    );
+  }
+
+  static Future<Map<String, dynamic>> searchLocation(String query) async {
+    return await GeocodingService(apiKey).getCoordinates(query);
   }
 }

@@ -2,12 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
-
 import '../bloc/weather_bloc.dart';
-import '../helpers/weather_helpers.dart';
-import '../widgets/weather_row.dart';
-import '../widgets/weather_section.dart';
-import '../widgets/forecast_section.dart';
+import '../helpers/ui_helpers.dart';
+import '../widgets/weather_row_widget.dart';
+import '../widgets/weather_section_widget.dart';
+import '../widgets/forecast_section_widget.dart';
 import 'location_selection_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -18,24 +17,6 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  /// Helper function to determine greeting based on location's time zone
-  String getLocalizedGreeting(Duration timezoneOffset) {
-    final currentUtcTime = DateTime.now().toUtc();
-    final localTime = currentUtcTime.add(timezoneOffset);
-
-    final hour = localTime.hour;
-
-    if (hour >= 5 && hour < 12) {
-      return "Selamat Pagi!"; // Morning
-    } else if (hour >= 12 && hour < 15) {
-      return "Selamat Siang!"; // Noon
-    } else if (hour >= 15 && hour < 18) {
-      return "Selamat Sore!"; // Afternoon
-    } else {
-      return "Selamat Malam!"; // Night
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -101,10 +82,12 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ),
                 const SizedBox(height: 8),
+
                 if (state is WeatherBlocSuccess) ...[
                   // Localized Greeting
                   Text(
-                    getLocalizedGreeting(state.timezoneOffset),
+                    getLocalizedGreeting(
+                        state.timezoneOffset), // Moved to helper
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 26,
@@ -137,12 +120,11 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   ),
                   const SizedBox(height: 5),
+
                   // Localized Date with 24-Hour Format
                   Center(
                     child: Text(
-                      DateFormat("EEEE, d MMMM y | HH:mm").format(
-                        DateTime.now().toUtc().add(state.timezoneOffset),
-                      ),
+                      getFormattedDate(state.timezoneOffset), // Moved to helper
                       style: const TextStyle(
                         color: Colors.white,
                         fontSize: 16,

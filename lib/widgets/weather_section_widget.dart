@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'weather_row.dart';
+import 'weather_row_widget.dart';
 
 class WeatherSection extends StatelessWidget {
   final List<WeatherRow> rows;

@@ -1,10 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import '../data/my_data.dart';
-
 import '../helpers/shared_prefs_helper.dart';
-import '../utils/geocoding_service.dart';
-import '../utils/location_service.dart';
+import '../services/location_service.dart';
+import '../widgets/location_list_widget.dart';
 
 class LocationSelectionScreen extends StatefulWidget {
   const LocationSelectionScreen({super.key});
@@ -17,35 +14,24 @@ class LocationSelectionScreen extends StatefulWidget {
 class _LocationSelectionScreenState extends State<LocationSelectionScreen> {
   final TextEditingController _searchController = TextEditingController();
   List<Map<String, dynamic>> _savedLocations = [];
-  Map<String, dynamic>? _currentLocation; // For the pinned current location
-  Map<String, dynamic>? _previewedLocation; // For previewing search results
-  bool _isLoading = false; // Show loading spinner for search
-  String _errorMessage = ''; // For handling errors
+  Map<String, dynamic>? _currentLocation;
+  Map<String, dynamic>? _previewedLocation;
+  bool _isLoading = false;
+  String _errorMessage = '';
 
   @override
   void initState() {
     super.initState();
-    _fetchAndSaveCurrentLocation(); // Fetch current location
-    _loadSavedLocations(); // Load saved locations
+    _fetchAndSaveCurrentLocation();
+    _loadSavedLocations();
   }
 
   Future<void> _fetchAndSaveCurrentLocation() async {
     try {
-      final position = await LocationService.determinePosition();
-      final geocodedLocation =
-          await GeocodingService(apiKey).getCoordinatesFromLatLon(
-        position.latitude,
-        position.longitude,
-      );
-
-      // Update the current location
+      final geocodedLocation = await LocationService.fetchCurrentLocation();
       setState(() {
         _currentLocation = geocodedLocation;
       });
-
-      // Add to saved locations if not already present
-      SharedPrefsHelper.saveLocation(geocodedLocation);
-      _loadSavedLocations();
     } catch (e) {
       setState(() {
         _errorMessage = 'Failed to fetch current location: $e';
@@ -56,7 +42,6 @@ class _LocationSelectionScreenState extends State<LocationSelectionScreen> {
   Future<void> _loadSavedLocations() async {
     final savedLocations = await SharedPrefsHelper.loadSavedLocations();
     setState(() {
-      // Ensure current location is always pinned at the top
       _savedLocations = savedLocations
           .where((loc) =>
               loc['lat'] != _currentLocation?['lat'] &&
@@ -68,14 +53,14 @@ class _LocationSelectionScreenState extends State<LocationSelectionScreen> {
   Future<void> _searchLocation(String query) async {
     setState(() {
       _isLoading = true;
-      _errorMessage = ''; // Clear previous error messages
+      _errorMessage = '';
     });
 
     try {
-      final result = await GeocodingService(apiKey).getCoordinates(query);
+      final result = await LocationService.searchLocation(query);
       setState(() {
         _isLoading = false;
-        _previewedLocation = result; // Preview the first result
+        _previewedLocation = result;
       });
     } catch (e) {
       setState(() {
@@ -85,163 +70,91 @@ class _LocationSelectionScreenState extends State<LocationSelectionScreen> {
     }
   }
 
-  Future<void> _saveLocation(Map<String, dynamic> location) async {
-    await SharedPrefsHelper.saveLocation(location);
-    _loadSavedLocations(); // Reload saved locations to reflect changes
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Location saved!')),
-      );
-    }
-  }
-
-  Future<void> _removeLocation(Map<String, dynamic> location) async {
-    final prefs = await SharedPreferences.getInstance();
-    final savedLocations = prefs.getStringList('saved_locations') ?? [];
-
-    // Remove the location from SharedPreferences
-    final updatedLocations = savedLocations.where((loc) {
-      final parts = loc.split(',');
-      return !(parts[0] == location['name'] &&
-          parts[1] == location['lat'].toString() &&
-          parts[2] == location['lon'].toString());
-    }).toList();
-
-    await prefs.setStringList('saved_locations', updatedLocations);
-    _loadSavedLocations();
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         centerTitle: true,
-        title: const Text(
-          "Select Location",
-          style: TextStyle(color: Colors.white),
-        ),
-        backgroundColor: Colors.black,
+        title: const Text("Select Location"),
+        backgroundColor: Colors.white10,
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Search Bar
             TextField(
               controller: _searchController,
-              style: const TextStyle(color: Colors.white),
               decoration: InputDecoration(
                 hintText: "Search for a location...",
-                hintStyle: const TextStyle(color: Colors.white70),
-                filled: true,
-                fillColor: Colors.grey[900],
                 suffixIcon: _isLoading
                     ? const CircularProgressIndicator()
                     : IconButton(
-                        icon: const Icon(Icons.search, color: Colors.white),
-                        onPressed: () {
-                          _searchLocation(_searchController.text.trim());
+                        icon: const Icon(Icons.search),
+                        onPressed: () =>
+                            _searchLocation(_searchController.text.trim()),
+                      ),
+              ),
+            ),
+            const SizedBox(height: 10),
+            // Handle Errors
+            if (_errorMessage.isNotEmpty)
+              Text(_errorMessage, style: const TextStyle(color: Colors.red)),
+
+            const SizedBox(height: 30),
+
+            // Expandable Scrollable List
+            Expanded(
+              child: SingleChildScrollView(
+                keyboardDismissBehavior:
+                    ScrollViewKeyboardDismissBehavior.onDrag,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Previewed Location
+                    if (_previewedLocation != null)
+                      LocationList(
+                        title: "Previewed Location",
+                        locations: [_previewedLocation!],
+                        onSelect: (loc) => Navigator.pop(context, loc),
+                        onRemove: (_) {},
+                        showSaveButton: true,
+                        onSave: (loc) async {
+                          await SharedPrefsHelper.saveLocation(loc);
+                          _loadSavedLocations();
                         },
                       ),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10),
-                  borderSide: BorderSide.none,
+
+                    const SizedBox(height: 20),
+
+                    // Saved Locations
+                    if (_savedLocations.isNotEmpty)
+                      LocationList(
+                        title: "Saved Locations",
+                        locations: _savedLocations,
+                        onSelect: (loc) => Navigator.pop(context, loc),
+                        onRemove: (loc) async {
+                          await SharedPrefsHelper.removeLocation(loc);
+                          _loadSavedLocations();
+                        },
+                      ),
+
+                    const SizedBox(height: 20),
+
+                    // Current Location
+                    if (_currentLocation != null)
+                      LocationList(
+                        title: "Current Location",
+                        locations: [_currentLocation!],
+                        onSelect: (loc) => Navigator.pop(context, loc),
+                        onRemove:
+                            (_) {}, // Keep empty since current location shouldn't be removable
+                        showRemoveButton: false,
+                      ),
+                  ],
                 ),
               ),
             ),
-            const SizedBox(height: 20),
-
-            // Error Message
-            if (_errorMessage.isNotEmpty)
-              Text(
-                _errorMessage,
-                style: const TextStyle(color: Colors.red),
-              ),
-
-            // Current Location (Pinned)
-            if (_currentLocation != null) ...[
-              const Text(
-                "Current Location:",
-                style: TextStyle(
-                  color: Colors.black,
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              ListTile(
-                title: Text(
-                  _currentLocation!['name'],
-                  style: const TextStyle(color: Colors.black),
-                ),
-                onTap: () {
-                  Navigator.pop(context, _currentLocation);
-                },
-              ),
-              const Divider(color: Colors.grey),
-            ],
-
-            // Saved Locations
-            if (_savedLocations.isNotEmpty) ...[
-              const Text(
-                "Saved Locations:",
-                style: TextStyle(
-                  color: Colors.black,
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 10),
-              Expanded(
-                child: ListView.builder(
-                  itemCount: _savedLocations.length,
-                  itemBuilder: (context, index) {
-                    final location = _savedLocations[index];
-                    return ListTile(
-                      title: Text(
-                        location['name'],
-                        style: const TextStyle(color: Colors.black),
-                      ),
-                      trailing: IconButton(
-                        icon: const Icon(Icons.delete, color: Colors.red),
-                        onPressed: () => _removeLocation(location),
-                      ),
-                      onTap: () {
-                        Navigator.pop(context, location);
-                      },
-                    );
-                  },
-                ),
-              ),
-            ],
-
-            // Previewed Location
-            if (_previewedLocation != null) ...[
-              const Divider(color: Colors.grey),
-              const Text(
-                "Previewed Location:",
-                style: TextStyle(
-                  color: Colors.black,
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              ListTile(
-                title: Text(
-                  _previewedLocation!['name'],
-                  style: const TextStyle(color: Colors.black),
-                ),
-                trailing: ElevatedButton(
-                  onPressed: () {
-                    _saveLocation(_previewedLocation!);
-                  },
-                  child: const Text("Save"),
-                ),
-                onTap: () {
-                  Navigator.pop(context, _previewedLocation);
-                },
-              ),
-            ],
           ],
         ),
       ),
