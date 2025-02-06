@@ -19,7 +19,7 @@ class ForecastSection extends StatelessWidget {
             child: Column(
               children: [
                 Text(
-                  item['date'], // Show date
+                  item['date'],
                   style: const TextStyle(color: Colors.white),
                 ),
                 Image.network(

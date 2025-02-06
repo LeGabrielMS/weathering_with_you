@@ -9,7 +9,6 @@ class GeocodingService {
 
   GeocodingService(this.apiKey);
 
-  // Fetch coordinates from location name
   Future<Map<String, dynamic>> getCoordinates(String location) async {
     final url = Uri.parse('$_baseUrlDirect?q=$location&limit=1&appid=$apiKey');
     final response = await http.get(url);
@@ -32,7 +31,6 @@ class GeocodingService {
     }
   }
 
-  // Reverse geocode from latitude and longitude
   Future<Map<String, dynamic>> getCoordinatesFromLatLon(
       double lat, double lon) async {
     final url =

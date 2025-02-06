@@ -19,7 +19,7 @@ class MyApp extends StatefulWidget {
 
 class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   late Future<Position> _positionFuture;
-  bool _locationPreviouslyOff = false; // Track if location was previously off
+  bool _locationPreviouslyOff = false;
 
   @override
   void initState() {
@@ -37,13 +37,12 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) async {
     if (state == AppLifecycleState.resumed) {
-      // Check if location services were previously off
       if (_locationPreviouslyOff) {
         final isLocationEnabled = await Geolocator.isLocationServiceEnabled();
         if (isLocationEnabled) {
           setState(() {
             _positionFuture = LocationService.determinePosition();
-            _locationPreviouslyOff = false; // Reset the flag
+            _locationPreviouslyOff = false;
           });
         }
       }

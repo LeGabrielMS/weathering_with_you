@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
+
 import '../bloc/weather_bloc.dart';
-import '../helpers/ui_helpers.dart';
+import '../helpers/ui_helper.dart';
+import '../widgets/menu_button_widget.dart';
 import '../widgets/weather_row_widget.dart';
 import '../widgets/weather_section_widget.dart';
 import '../widgets/forecast_section_widget.dart';
@@ -28,6 +30,9 @@ class _HomeScreenState extends State<HomeScreen> {
         systemOverlayStyle: const SystemUiOverlayStyle(
           statusBarBrightness: Brightness.dark,
         ),
+        actions: const [
+          MenuButton(),
+        ],
       ),
       body: Padding(
         padding: const EdgeInsets.fromLTRB(40, 1.2 * kToolbarHeight, 40, 20),
@@ -86,8 +91,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 if (state is WeatherBlocSuccess) ...[
                   // Localized Greeting
                   Text(
-                    getLocalizedGreeting(
-                        state.timezoneOffset), // Moved to helper
+                    getLocalizedGreeting(state.timezoneOffset),
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 26,
@@ -124,7 +128,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   // Localized Date with 24-Hour Format
                   Center(
                     child: Text(
-                      getFormattedDate(state.timezoneOffset), // Moved to helper
+                      getFormattedDate(state.timezoneOffset),
                       style: const TextStyle(
                         color: Colors.white,
                         fontSize: 16,
